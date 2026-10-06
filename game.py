@@ -61,7 +61,7 @@ class Player:  #player overlay
         self.potions = {"Potion": 3, "Greater Healing Potion": 0}
         self.base_attack = 10
         self.weapons = ["Fists", "Wooden Sword"]
-        self.currentWeapon = ["Fists"]
+        self.currentWeapon = "Fists"
         self.currLocation = "Void Cave"
 
     @property
@@ -365,9 +365,9 @@ def fight():
     option = input(">>>> ")
     if option == "1":
         pre_attack()                                         
-    if option == "2":
+    elif option == "2":
         potion()
-    if option == "3":
+    elif option == "3":
         run()
         
     else:
@@ -402,11 +402,13 @@ def special_attack():
 
         if enemy.health <= 0:
             victory()
+            return
             
     else: 
         print("You don't have enough mana!")
         time.sleep(1)
         fight()
+        return
     
 
     # enemy SAttack   #so enemy can either attack or dodge the spcial attack
@@ -472,6 +474,7 @@ def attack():
     
     if enemy.health <= 0:
         victory()
+        return
     
     if EDamage == int(enemy.attack/3):
         print("%s's Attack Missed!" % enemy.name)
@@ -502,8 +505,11 @@ def potion1():    #INCREASES HEALTH
     print("------------------------------------")
     option = input(">>>> ")
 
-    
-    
+    if option in PlayerA.potions and PlayerA.potions[option] > 0 and PlayerA.health >= PlayerA.MaxHealth:
+        print("Your Health is already full!")
+        time.sleep(2)
+        return
+
     if option == "Potion":                       #potion = +30 health
         if PlayerA.potions[option] > 0:
             PlayerA.health += 30 
@@ -534,7 +540,7 @@ def potion1():    #INCREASES HEALTH
 
 
 def run():                 # decrease coins if want to run, else fight
-    if PlayerA.coins > 5:
+    if PlayerA.coins >= 5:
           PlayerA.coins -=5
           print("You ran away \n")
           time.sleep(2)
@@ -580,7 +586,7 @@ def victory():
 
 def defeat():
     #os.system('cls')
-    PlayerA.coins -= 10
+    PlayerA.coins = max(0, PlayerA.coins - 10)
     print("YOU HAVE BEEN DEFEATED")
     time.sleep(2)
     PlayerA.health = PlayerA.MaxHealth     #resets player health
@@ -630,7 +636,7 @@ def equip():
     print("-----------------------------")
     option = input(">>>> ")
 
-    if option in PlayerA.currentWeapon:
+    if option == PlayerA.currentWeapon:
         print("Already equipped %s" % option)
         time.sleep(2)
         equip()
@@ -672,6 +678,12 @@ def shop():
             game1()
 
         if option in Weapons_in_Shop:
+            if option in PlayerA.weapons:
+                print("------------------------------")
+                print("You already own %s!" % option)
+                time.sleep(2)
+                shop()
+                return
             print("------------------------------")
             print("That will cost %i 🪙" % Weapons_in_Shop[option][0])
             time.sleep(2)
@@ -708,7 +720,15 @@ def shop():
             print("How many potions do you want to buy?\n")
             print("--------------------------------------")
             time.sleep(2)
-            count = int(input(">>>> "))
+            try:
+                count = int(input(">>>> "))
+            except ValueError:
+                count = -1
+            if count <= 0:
+                print("Invalid number of potions!")
+                time.sleep(2)
+                shop()
+                return
             cost = Potions_in_Shop[option]*count
             if PlayerA.coins >= cost:
                 PlayerA.coins -= cost
@@ -723,7 +743,15 @@ def shop():
         elif option == "Greater Healing Potion":
             print("How many Greater Healing Potions you want to buy? ")
             print("--------------------------------------")    
-            count = int(input(">>>> "))
+            try:
+                count = int(input(">>>> "))
+            except ValueError:
+                count = -1
+            if count <= 0:
+                print("Invalid number of Greater Healing Potions!")
+                time.sleep(2)
+                shop()
+                return
             cost = int(int(Potions_in_Shop[option])*int(count))
             if PlayerA.coins >= cost:
                 PlayerA.coins -= cost
@@ -756,7 +784,10 @@ def minigame():
         print(str(i) + ") " + x)
         i += 1
     print("---------------------------------------------------")
-    option = int(input(">>>> "))
+    try:
+        option = int(input(">>>> "))
+    except ValueError:
+        option = -1
     if option == 1:
         TicTacToe()  #minigame with min max logic
     elif option == 2:
@@ -788,6 +819,15 @@ def TicTacToe():
     #reference from https://levelup.gitconnected.com/mastering-tic-tac-toe-with-minimax-algorithm-3394d65fa88f
     #Mastering Tic-Tac-Toe with Minimax Algorithm in Python
     intro()
+    game_ended = False
+
+    def read_position(prompt):
+        while True:
+            try:
+                return int(input(prompt))
+            except ValueError:
+                print("Please enter a valid number!")
+
     def printBoard(board):
         os.system('cls')
         print(board[1] + " |" + board[2] + " |" + board[3])
@@ -799,34 +839,38 @@ def TicTacToe():
        
 
     def spaceIsFree(position):
-        if board[position] == ' ':
+        if position in board and board[position] == ' ':
             return True 
         return False 
 
     def insertLetter(letter, position):
+        nonlocal game_ended
         if spaceIsFree(position):
             board[position] = letter 
             printBoard(board)
             if checkDraw():
                 print("Draw!")
                 time.sleep(2)
+                game_ended = True
                 game1()
-                
+                return
             if checkWin():
                 if letter == 'X':
                     print("Bot wins!")
                     time.sleep(2)
+                    game_ended = True
                     game1()
-                    
                 else:
                     print("player wins!")
                     PlayerA.coins += 500
                     time.sleep(2)
+                    game_ended = True
                     game1()
-            return 
+                return
+            return
         else:
             print("Invalid position")
-            position = int(input("Please enter a new position: "))
+            position = read_position("Please enter a new position: ")
             insertLetter(letter, position)
             return    
 
@@ -877,7 +921,7 @@ def TicTacToe():
         return True 
 
     def ppMove():
-        position = int(input("Enter a position for 'O': "))
+        position = read_position("Enter a position for 'O': ")
         insertLetter(pp, position)
         return 
 
@@ -892,7 +936,8 @@ def TicTacToe():
                 if score > bestScore:
                     bestScore = score 
                     bestMove = key
-        insertLetter(computer, bestMove)
+        if bestMove != 0:
+            insertLetter(computer, bestMove)
         return 
     def minimax(board, isMaximizing):
         if checkWhichMarkWon(computer):
@@ -925,15 +970,21 @@ def TicTacToe():
 
     def firstmover():
             printBoard(board)
-            first = int(input("\n| 1 for first move\n| 2 for going second\n>>> "))
+            first = read_position("\n| 1 for first move\n| 2 for going second\n>>> ")
+            while first not in (1, 2):
+                first = read_position("\n| 1 for first move\n| 2 for going second\n>>> ")
             if first == 1:
-                while not checkWin():
+                while not checkWin() and not game_ended:
                     ppMove()
+                    if game_ended:
+                        break
                     time.sleep(1)
                     compMove()
             if first == 2:
-                while not checkWin():
+                while not checkWin() and not game_ended:
                     compMove()
+                    if game_ended:
+                        break
                     time.sleep(1)
                     ppMove()
     firstmover()
@@ -943,9 +994,15 @@ def TicTacToe():
 def snakegame():  
     os.system('cls')
 
-    import pygame
     import time
     import random
+    try:
+        import pygame
+    except ImportError:
+        print("Pygame is not installed. Cannot play the Snake Game.")
+        time.sleep(2)
+        minigame()
+        return
 
     snake_speed = 15
     score = 0
@@ -1109,7 +1166,10 @@ def mazegame():
     mazeX = 5
     mazeY = 5
     enemy_number = 6
-    X = int(input("Enter the size of the row( M X M) should be greater then 5):>> "))
+    try:
+        X = int(input("Enter the size of the row( M X M) should be greater then 5):>> "))
+    except ValueError:
+        X = 5
     if X < 5:
         X = 5
     mazeX = X
@@ -1119,30 +1179,31 @@ def mazegame():
     currentposition = "|&|" 
     board[charX][charY] = currentposition
     ls = []
-    for m in range(enemy_number):
-        enemyX = randint(1,5)
-        enemyY = randint(1,5)
+    while len(ls) < enemy_number:
+        enemyX = randint(0, mazeX-1)
+        enemyY = randint(0, mazeY-1)
         ele = (enemyX,enemyY)
-        ls.append(ele)
+        if ele != (0,0) and ele != (mazeX-1, mazeY-1):
+            ls.append(ele)
+
+    def check():
+        for ele in ls:
+            if ele[0] == charX and ele[1] == charY:
+                print("YOU WERE ATTACKED BY THE MONSTER!\nGAME OVER")
+                board[charX][charY] = "|X|"
+                time.sleep(2)
+                game1()
+                return True
+        if charX == mazeX-1 and charY == mazeY-1:
+            print("You WON the game")
+            print("You get 100 gold coins!")
+            PlayerA.coins += 100
+            time.sleep(2)
+            game1()
+            return True
+        return False
 
     while True:
-        def check():
-            for i in range(4):
-
-                    if ls[i][0] == charX and ls[i][1] == charY:
-
-                        print("YOU WERE ATTACKED BY THE MONSTER!\nGAME OVER")
-                        board[charX][charY] = "|X|"
-                        time.sleep(2)
-                        game1()
-                    if charX == mazeX-1 and charY == mazeY-1:
-
-                        print("You WON the game")
-                        print("You get 100 gold coins!")
-                        PlayerA.coins += 100
-                        time.sleep(2)
-                        game1()
-
 
         #print(ls)
         for i in board:
@@ -1160,20 +1221,21 @@ def mazegame():
             os.system('cls')
             board[charX][charY] = "| |"
             charX -= 1
-            if mazeX > charX:
+            if 0 <= charX < mazeX:
                 board[charX][charY] = "|&|"
             else:
                 print("You hit the wall")
                 charX = 0
                 charY = 0
                 board[charX][charY] = "|&|"
-            check()
+            if check():
+                return
 
         elif option == "S":
             os.system('cls')
             board[charX][charY] = "| |"
             charX += 1
-            if mazeX > charX:
+            if 0 <= charX < mazeX:
                 board[charX][charY] = "|&|"
             else:
                 print("You hit the wall")
@@ -1181,32 +1243,36 @@ def mazegame():
                 charX = 0
                 charY = 0
                 board[charX][charY] = "|&|"
-            check()
+            if check():
+                return
         elif option == "A":
             os.system('cls')
             board[charX][charY] = "| |"
             charY -= 1
-            if mazeY > charY:
+            if 0 <= charY < mazeY:
                 board[charX][charY] = "|&|"
             else:
                 print("You hit the wall")
                 charX = 0
                 charY = 0
                 board[charX][charY] = "|&|"
-            check()
+            if check():
+                return
         elif option == "D":
             os.system('cls')
             board[charX][charY] = "| |"
             charY += 1
-            if mazeY > charY:
+            if 0 <= charY < mazeY:
                 board[charX][charY] = "|&|"
             else:
                 print("You hit the wall")
                 charX = 0
                 charY = 0
                 board[charX][charY] = "|&|"
-            check()
+            if check():
+                return
 
 
 
-main()
+if __name__ == "__main__":
+    main()
